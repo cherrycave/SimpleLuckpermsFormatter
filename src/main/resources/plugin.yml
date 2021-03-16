@@ -1,0 +1,9 @@
+name: SimpleLuckPermsFormatter
+main: de.nycode.slpf.SimpleLuckPermsFormatter
+version: 1.0.0-SNAPSHOT
+api-version: 1.13
+authors:
+  - NyCode
+website: https://github.com/NyCodeGHG/SimpleLuckPermsFormatter
+depend:
+  - LuckPerms
