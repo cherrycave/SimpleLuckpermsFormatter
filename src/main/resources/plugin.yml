@@ -1,6 +1,6 @@
 name: SimpleLuckPermsFormatter
 main: de.nycode.slpf.SimpleLuckPermsFormatter
-version: 1.0.0-SNAPSHOT
+version: 1.0.0
 api-version: 1.13
 authors:
   - NyCode

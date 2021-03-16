@@ -8,6 +8,7 @@ import net.luckperms.api.event.node.NodeAddEvent
 import net.luckperms.api.event.node.NodeRemoveEvent
 import net.luckperms.api.event.user.UserDataRecalculateEvent
 import net.luckperms.api.model.group.Group
+import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
 import org.bukkit.entity.Player
@@ -43,6 +44,8 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
         reloadConfig()
         chatFormat = config.getString("chat-format") ?: "{username}: &7{message}"
         useColorInsteadOfPrefix = config.getBoolean("chat-use-color-instead-of-prefix")
+
+        Metrics(this, 10680)
     }
 
     private fun createScoreboard() {
