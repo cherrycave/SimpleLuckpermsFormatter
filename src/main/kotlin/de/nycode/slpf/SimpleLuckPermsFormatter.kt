@@ -4,9 +4,6 @@ import net.luckperms.api.LuckPerms
 import net.luckperms.api.event.group.GroupCreateEvent
 import net.luckperms.api.event.group.GroupDataRecalculateEvent
 import net.luckperms.api.event.group.GroupDeleteEvent
-import net.luckperms.api.event.node.NodeAddEvent
-import net.luckperms.api.event.node.NodeRemoveEvent
-import net.luckperms.api.event.user.UserDataRecalculateEvent
 import net.luckperms.api.model.group.Group
 import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
@@ -29,7 +26,8 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
 
     override fun onEnable() {
         luckPerms = loadLuckPerms() ?: error("Unable to load the LuckPerms API")
-        Bukkit.getPluginManager().registerEvents(this, this)
+        Bukkit.getPluginManager()
+            .registerEvents(this, this)
 
         createScoreboard()
 
@@ -60,33 +58,35 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
         luckPerms.groupManager.loadedGroups
             .sortedByDescending { it.weight.orElse(0) }
             .forEachIndexed { index, group ->
-                val team = scoreboard.registerNewTeam("0000$index" + group.name)
+                val team = scoreboard.registerNewTeam(getNextIndex(index) + group.name)
                 team.prefix = group.cachedData.metaData.prefix ?: ""
                 team.suffix = group.cachedData.metaData.suffix ?: ""
                 team.color = ChatColor.valueOf(group.cachedData.metaData.getMetaValue("color") ?: return@forEachIndexed)
             }
 
-        Bukkit.getOnlinePlayers().forEach {
-            it.updatePrefix()
-        }
+        Bukkit.getOnlinePlayers()
+            .forEach {
+                it.updatePrefix()
+            }
     }
 
     private fun loadLuckPerms(): LuckPerms? {
-        val provider = Bukkit.getServicesManager().getRegistration(LuckPerms::class.java)
+        val provider = Bukkit.getServicesManager()
+            .getRegistration(LuckPerms::class.java)
         return provider?.provider
     }
 
-    @EventHandler
-    private fun onPlayerJoin(event: PlayerJoinEvent) {
-        val player = event.player
-        player.updatePrefix()
+    private fun getNextIndex(index: Int): String {
+        val withZeros = "%07d".format(index)
+        return withZeros.substring(withZeros.lastIndex - 5, withZeros.lastIndex)
     }
 
     private fun Player.updatePrefix() {
         val group = getLuckPermsGroup() ?: return
-        val index = luckPerms.groupManager.loadedGroups.sortedByDescending { it.weight.orElse(0) }.indexOf(group)
+        val index = luckPerms.groupManager.loadedGroups.sortedByDescending { it.weight.orElse(0) }
+            .indexOf(group)
         this.scoreboard = this@SimpleLuckPermsFormatter.scoreboard
-        val team = this@SimpleLuckPermsFormatter.scoreboard.getTeam("0000$index" + group.name)
+        val team = this@SimpleLuckPermsFormatter.scoreboard.getTeam(getNextIndex(index) + group.name)
         team?.addEntry(name)
     }
 
@@ -96,18 +96,26 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     }
 
     @EventHandler
+    private fun onPlayerJoin(event: PlayerJoinEvent) {
+        val player = event.player
+        player.updatePrefix()
+    }
+
+    @EventHandler
     private fun onChat(event: AsyncPlayerChatEvent) {
         val player = event.player
         val group = player.getLuckPermsGroup()
         val prefix = if (useColorInsteadOfPrefix) {
-            ChatColor.valueOf(group?.cachedData?.metaData?.getMetaValue("color") ?: "WHITE").toString()
+            ChatColor.valueOf(group?.cachedData?.metaData?.getMetaValue("color") ?: "WHITE")
+                .toString()
         } else {
             ChatColor.valueOf(group?.cachedData?.metaData?.getMetaValue("color") ?: "WHITE")
                 .toString() + group?.cachedData?.metaData?.prefix
         }
         val format = ChatColor.translateAlternateColorCodes(
             '&',
-            chatFormat.replace("{username}", "$prefix%s").replace("{message}", "%s")
+            chatFormat.replace("{username}", "$prefix%s")
+                .replace("{message}", "%s")
         )
         event.format = format
     }
