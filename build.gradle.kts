@@ -16,10 +16,19 @@ dependencies {
 }
 
 tasks {
+    shadowJar {
+        relocate("org.bstats", "de.nycode.slpf.bstats")
+        relocate("kotlin", "de.nycode.slpf.kotlin")
+        relocate("org.jetbrains", "de.nycode.slpf.jetbrains")
+        relocate("org.intellij", "de.nycode.slpf.intellij")
+    }
     jar {
         enabled = false
     }
     build {
         finalizedBy(shadowJar)
+    }
+    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+        kotlinOptions.jvmTarget = "11"
     }
 }

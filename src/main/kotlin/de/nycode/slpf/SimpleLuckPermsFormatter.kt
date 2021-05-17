@@ -8,6 +8,7 @@ import net.luckperms.api.model.group.Group
 import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
+import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -23,6 +24,8 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     private lateinit var luckPerms: LuckPerms
     private lateinit var chatFormat: String
     private var useColorInsteadOfPrefix: Boolean = true
+
+    private val updateChecker = UpdateChecker(this, 90196)
 
     override fun onEnable() {
         luckPerms = loadLuckPerms() ?: error("Unable to load the LuckPerms API")
@@ -44,6 +47,22 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
         useColorInsteadOfPrefix = config.getBoolean("chat-use-color-instead-of-prefix")
 
         Metrics(this, 10680)
+
+        Bukkit.getConsoleSender().sendUpdateCheck()
+    }
+
+    private fun CommandSender.sendUpdateCheck() {
+        updateChecker.getVersion { latestString ->
+            val current = SemVerVersion.parseOrNull(description.version) ?: return@getVersion
+            val latest = SemVerVersion.parseOrNull(latestString) ?: return@getVersion
+
+            if (current < latest) {
+                sendMessage("${ChatColor.YELLOW}A new Version of SimpleLuckPermsFormatter is available!")
+                sendMessage("${ChatColor.RED}Your Version: $current")
+                sendMessage("${ChatColor.GREEN}Available Version: $latest")
+                sendMessage("${ChatColor.YELLOW}Get it on: ${ChatColor.GRAY}https://www.spigotmc.org/resources/simpleluckpermsformatter.90196/")
+            }
+        }
     }
 
     private fun createScoreboard() {
@@ -99,6 +118,10 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     private fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
         player.updatePrefix()
+
+        if (player.hasPermission("slpf.update")) {
+            player.sendUpdateCheck()
+        }
     }
 
     @EventHandler
