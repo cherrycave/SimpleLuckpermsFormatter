@@ -1,91 +1,81 @@
 package de.nycode.slpf
 
+import io.papermc.paper.event.player.AsyncChatEvent
+import java.util.function.Consumer
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.JoinConfiguration
+import net.kyori.adventure.text.format.NamedTextColor
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.event.group.GroupCreateEvent
 import net.luckperms.api.event.group.GroupDataRecalculateEvent
 import net.luckperms.api.event.group.GroupDeleteEvent
+import net.luckperms.api.event.user.UserDataRecalculateEvent
 import net.luckperms.api.model.group.Group
-import org.bstats.bukkit.Metrics
 import org.bukkit.Bukkit
 import org.bukkit.ChatColor
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.AsyncPlayerChatEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.plugin.java.JavaPlugin
-import org.bukkit.scoreboard.Scoreboard
-import java.util.function.Consumer
 
 class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
 
-    private lateinit var scoreboard: Scoreboard
     private lateinit var luckPerms: LuckPerms
     private lateinit var chatFormat: String
     private var useColorInsteadOfPrefix: Boolean = true
-
-    private val updateChecker = UpdateChecker(this, 90196)
 
     override fun onEnable() {
         luckPerms = loadLuckPerms() ?: error("Unable to load the LuckPerms API")
         Bukkit.getPluginManager()
             .registerEvents(this, this)
 
-        createScoreboard()
-
         val update = Consumer<Any> {
-            updateScoreboard()
+            Bukkit.getOnlinePlayers().forEach {
+                it.updateScoreboard()
+                it.updatePrefixes()
+            }
         }
         luckPerms.eventBus.subscribe(this, GroupDataRecalculateEvent::class.java, update)
         luckPerms.eventBus.subscribe(this, GroupCreateEvent::class.java, update)
         luckPerms.eventBus.subscribe(this, GroupDeleteEvent::class.java, update)
+        luckPerms.eventBus.subscribe(this, UserDataRecalculateEvent::class.java, update)
 
         saveDefaultConfig()
         reloadConfig()
         chatFormat = config.getString("chat-format") ?: "{username}: &7{message}"
         useColorInsteadOfPrefix = config.getBoolean("chat-use-color-instead-of-prefix")
-
-        Metrics(this, 10680)
-
-        Bukkit.getConsoleSender().sendUpdateCheck()
     }
 
-    private fun CommandSender.sendUpdateCheck() {
-        updateChecker.getVersion { latestString ->
-            val current = SemVerVersion.parseOrNull(description.version) ?: return@getVersion
-            val latest = SemVerVersion.parseOrNull(latestString) ?: return@getVersion
-
-            if (current < latest) {
-                sendMessage("${ChatColor.YELLOW}A new Version of SimpleLuckPermsFormatter is available!")
-                sendMessage("${ChatColor.RED}Your Version: $current")
-                sendMessage("${ChatColor.GREEN}Available Version: $latest")
-                sendMessage("${ChatColor.YELLOW}Get it on: ${ChatColor.GRAY}https://www.spigotmc.org/resources/simpleluckpermsformatter.90196/")
-            }
-        }
-    }
-
-    private fun createScoreboard() {
-        scoreboard = Bukkit.getScoreboardManager()?.newScoreboard ?: error("Unable to create new scoreboard!")
-        updateScoreboard()
-    }
-
-    private fun updateScoreboard() {
+    private fun Player.updateScoreboard() {
         scoreboard.teams.forEach {
             it.unregister()
         }
         luckPerms.groupManager.loadedGroups
             .sortedByDescending { it.weight.orElse(0) }
             .forEachIndexed { index, group ->
-                val team = scoreboard.registerNewTeam(getNextIndex(index) + group.name)
-                team.prefix = group.cachedData.metaData.prefix ?: ""
-                team.suffix = group.cachedData.metaData.suffix ?: ""
-                team.color = ChatColor.valueOf(group.cachedData.metaData.getMetaValue("color") ?: return@forEachIndexed)
-            }
-
-        Bukkit.getOnlinePlayers()
-            .forEach {
-                it.updatePrefix()
+                val team = scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
+                team.prefix(
+                    Component.text(
+                        ChatColor
+                            .translateAlternateColorCodes(
+                                '&', group.cachedData.metaData.prefix ?: ""
+                            )
+                    )
+                )
+                team.suffix(
+                    Component.text(
+                        ChatColor
+                            .translateAlternateColorCodes(
+                                '&', group.cachedData.metaData.suffix ?: ""
+                            )
+                    )
+                )
+                team.color(
+                    NamedTextColor.NAMES.value(group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray")
+                )
             }
     }
 
@@ -95,18 +85,22 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
         return provider?.provider
     }
 
-    private fun getNextIndex(index: Int): String {
-        val withZeros = "%07d".format(index)
-        return withZeros.substring(withZeros.lastIndex - 5, withZeros.lastIndex)
+    private fun getFormattedWeight(weight: Int): String {
+        var weightString = weight.toString()
+        while (weightString.length <= 5) {
+            weightString = "0$weightString"
+        }
+        return weightString
     }
 
-    private fun Player.updatePrefix() {
-        val group = getLuckPermsGroup() ?: return
-        val index = luckPerms.groupManager.loadedGroups.sortedByDescending { it.weight.orElse(0) }
-            .indexOf(group)
-        this.scoreboard = this@SimpleLuckPermsFormatter.scoreboard
-        val team = this@SimpleLuckPermsFormatter.scoreboard.getTeam(getNextIndex(index) + group.name)
-        team?.addEntry(name)
+    private fun Player.updatePrefixes() {
+        Bukkit.getOnlinePlayers().forEach {
+            val group = it.getLuckPermsGroup() ?: return
+            val index = luckPerms.groupManager.loadedGroups.sortedByDescending { it.weight.orElse(0) }
+                .indexOf(group)
+            val team = this.scoreboard.getTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
+            team?.addEntry(it.name)
+        }
     }
 
     private fun Player.getLuckPermsGroup(): Group? {
@@ -117,30 +111,29 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     @EventHandler
     private fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
-        player.updatePrefix()
-
-        if (player.hasPermission("slpf.update")) {
-            player.sendUpdateCheck()
+        player.scoreboard = Bukkit.getScoreboardManager().newScoreboard
+        Bukkit.getOnlinePlayers().forEach {
+            it.updateScoreboard()
+            it.updatePrefixes()
         }
     }
 
     @EventHandler
-    private fun onChat(event: AsyncPlayerChatEvent) {
+    private fun onChat(event: AsyncChatEvent) {
         val player = event.player
         val group = player.getLuckPermsGroup()
-        val prefix = if (useColorInsteadOfPrefix) {
-            ChatColor.valueOf(group?.cachedData?.metaData?.getMetaValue("color") ?: "WHITE")
-                .toString()
-        } else {
-            ChatColor.valueOf(group?.cachedData?.metaData?.getMetaValue("color") ?: "WHITE")
-                .toString() + group?.cachedData?.metaData?.prefix
+        event.renderer { source, _, message, _ ->
+            Component.join(
+                JoinConfiguration.separator(
+                    Component.text(": ").color(NamedTextColor.DARK_GRAY)
+                ),
+                source.name().color(
+                    NamedTextColor.NAMES
+                        .value(group?.cachedData?.metaData?.getMetaValue("color")?.lowercase() ?: "gray")
+                ),
+                message.color(NamedTextColor.WHITE)
+            )
         }
-        val format = ChatColor.translateAlternateColorCodes(
-            '&',
-            chatFormat.replace("{username}", "$prefix%s")
-                .replace("{message}", "%s")
-        )
-        event.format = format
     }
 
 }
