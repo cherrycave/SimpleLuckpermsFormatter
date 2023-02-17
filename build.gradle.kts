@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm") version "1.6.21"
-    id("io.papermc.paperweight.userdev") version "1.3.3"
+    id("io.papermc.paperweight.userdev") version "1.5.1"
 }
 
 group = "de.nycode"
