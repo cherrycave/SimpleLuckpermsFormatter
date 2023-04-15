@@ -5,9 +5,8 @@ api-version: 1.18
 authors:
   - NyCode
   - StckOverflw
-website: https://github.com/NyCodeGHG/SimpleLuckPermsFormatter
+website: https://github.com/CherryCave/SimpleLuckPermsFormatter
 depend:
   - LuckPerms
 libraries:
-  - "org.jetbrains.kotlin:kotlin-stdlib:1.6.21"
-  - "com.mojang:brigadier:1.0.18"
+  - "org.jetbrains.kotlin:kotlin-stdlib:1.8.20"

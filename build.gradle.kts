@@ -1,10 +1,11 @@
 plugins {
-    kotlin("jvm") version "1.6.21"
-    id("io.papermc.paperweight.userdev") version "1.3.3"
+    kotlin("jvm") version "1.8.20"
+    id("io.papermc.paperweight.userdev") version "1.5.4"
+    id("xyz.jpenilla.run-paper") version "2.0.1"
 }
 
 group = "de.nycode"
-version = "1.1.0"
+version = "2.0.0"
 
 repositories {
     mavenCentral()
@@ -12,13 +13,13 @@ repositories {
 }
 
 dependencies {
-    paperDevBundle("1.18.2-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.19.4-R0.1-SNAPSHOT")
     compileOnly("net.luckperms", "api", "5.4")
 }
 
 kotlin {
     jvmToolchain {
-        (this as JavaToolchainSpec).languageVersion.set(JavaLanguageVersion.of(17))
+        this.languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
