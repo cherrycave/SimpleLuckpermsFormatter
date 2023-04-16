@@ -4,6 +4,7 @@ import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.JoinConfiguration
 import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.minimessage.MiniMessage
 import net.luckperms.api.LuckPerms
 import net.luckperms.api.event.group.GroupCreateEvent
 import net.luckperms.api.event.group.GroupDataRecalculateEvent
@@ -11,7 +12,6 @@ import net.luckperms.api.event.group.GroupDeleteEvent
 import net.luckperms.api.event.user.UserDataRecalculateEvent
 import net.luckperms.api.model.group.Group
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -24,6 +24,8 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     private lateinit var luckPerms: LuckPerms
     private lateinit var chatFormat: String
     private var useColorInsteadOfPrefix: Boolean = true
+
+    private val miniMessage = MiniMessage.miniMessage()
 
     override fun onEnable() {
         luckPerms = loadLuckPerms() ?: error("Unable to load the LuckPerms API")
@@ -56,20 +58,10 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
             .forEachIndexed { index, group ->
                 val team = scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
                 team.prefix(
-                    Component.text(
-                        ChatColor
-                            .translateAlternateColorCodes(
-                                '&', group.cachedData.metaData.prefix ?: ""
-                            )
-                    )
+                    miniMessage.deserialize(group.cachedData.metaData.prefix ?: "")
                 )
                 team.suffix(
-                    Component.text(
-                        ChatColor
-                            .translateAlternateColorCodes(
-                                '&', group.cachedData.metaData.suffix ?: ""
-                            )
-                    )
+                    miniMessage.deserialize(group.cachedData.metaData.suffix ?: "")
                 )
                 team.color(
                     NamedTextColor.NAMES.value(group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray")
