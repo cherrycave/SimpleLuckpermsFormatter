@@ -1,7 +1,7 @@
 plugins {
     kotlin("jvm") version "1.8.20"
     id("io.papermc.paperweight.userdev") version "1.5.4"
-    id("xyz.jpenilla.run-paper") version "2.0.1"
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 group = "de.nycode"
