@@ -1,4 +1,4 @@
-package de.nycode.slpf
+package dev.boecker.cherrycave.slpf
 
 import io.papermc.paper.event.player.AsyncChatEvent
 import net.kyori.adventure.text.Component
@@ -27,6 +27,20 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
 
     private val miniMessage = MiniMessage.miniMessage()
 
+    var disableFormatting: Boolean = false
+        set(value) {
+            field = value
+
+            if (value) {
+                removeScoreboards()
+            } else {
+                server.onlinePlayers.forEach {
+                    it.updateScoreboard()
+                    it.updatePrefixes()
+                }
+            }
+        }
+
     override fun onEnable() {
         luckPerms = loadLuckPerms() ?: error("Unable to load the LuckPerms API")
         Bukkit.getPluginManager()
@@ -49,14 +63,24 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
         useColorInsteadOfPrefix = config.getBoolean("chat-use-color-instead-of-prefix")
     }
 
+    private fun removeScoreboards() {
+        server.onlinePlayers.forEach {
+            it.scoreboard.teams.forEach { team ->
+                team.unregister()
+            }
+        }
+    }
+
     private fun Player.updateScoreboard() {
         scoreboard.teams.forEach {
             it.unregister()
         }
+        if (disableFormatting) return
         luckPerms.groupManager.loadedGroups
             .sortedByDescending { it.weight.orElse(0) }
             .forEachIndexed { index, group ->
-                val team = scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
+                val team =
+                    scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
                 team.prefix(
                     miniMessage.deserialize(group.cachedData.metaData.prefix ?: "")
                 )
@@ -64,7 +88,9 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
                     miniMessage.deserialize(group.cachedData.metaData.suffix ?: "")
                 )
                 team.color(
-                    NamedTextColor.NAMES.value(group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray")
+                    NamedTextColor.NAMES.value(
+                        group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray"
+                    )
                 )
             }
     }
@@ -84,6 +110,7 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     }
 
     private fun Player.updatePrefixes() {
+        if (disableFormatting) return
         Bukkit.getOnlinePlayers().forEach {
             val group = it.getLuckPermsGroup() ?: return
             val index = luckPerms.groupManager.loadedGroups.sortedByDescending { it.weight.orElse(0) }
@@ -101,6 +128,7 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     @EventHandler
     private fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
+        if (disableFormatting) return
         player.scoreboard = Bukkit.getScoreboardManager().newScoreboard
         Bukkit.getOnlinePlayers().forEach {
             it.updateScoreboard()
@@ -114,15 +142,17 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
         val group = player.getLuckPermsGroup()
         event.renderer { source, _, message, _ ->
             Component.join(
-                JoinConfiguration.separator(
-                    Component.text(": ").color(NamedTextColor.DARK_GRAY)
+                JoinConfiguration.spaces(),
+                miniMessage.deserialize(
+                    "${group?.cachedData?.metaData?.prefix ?: ""}<${
+                        group?.cachedData?.metaData?.getMetaValue(
+                            "color"
+                        )?.lowercase() ?: "gray"
+                    }>${source.name}<dark_gray>:<white>"
                 ),
-                source.name().color(
-                    NamedTextColor.NAMES
-                        .value(group?.cachedData?.metaData?.getMetaValue("color")?.lowercase() ?: "gray")
-                ),
-                message.color(NamedTextColor.WHITE)
+                message
             )
+
         }
     }
 

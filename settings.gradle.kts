@@ -1,10 +1,4 @@
-rootProject.name = "SimpleLuckPermsFormatter"
-
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        maven("https://papermc.io/repo/repository/maven-public/")
-        maven("https://repo.codemc.io/repository/maven-snapshots/")
-        maven("https://libraries.minecraft.net")
-    }
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
+rootProject.name = "slpf"

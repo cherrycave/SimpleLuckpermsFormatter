@@ -1,33 +1,63 @@
 plugins {
-    kotlin("jvm") version "1.8.20"
-    id("io.papermc.paperweight.userdev") version "1.5.4"
-    id("xyz.jpenilla.run-paper") version "2.0.1"
+    java
+    kotlin("jvm") version "2.3.21"
+    `maven-publish`
 }
 
-group = "de.nycode"
-version = "2.0.0"
+group = "dev.boecker.cherrycave"
+version = "1.0.0"
 
 repositories {
     mavenCentral()
-    maven("https://repo.dmulloy2.net/repository/public/")
+    maven("https://repo.papermc.io/repository/maven-public/")
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.19.4-R0.1-SNAPSHOT")
-    compileOnly("net.luckperms", "api", "5.4")
+    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
+    compileOnly("net.luckperms:api:5.5")
 }
 
 kotlin {
-    jvmToolchain {
-        this.languageVersion.set(JavaLanguageVersion.of(17))
-    }
+    jvmToolchain(25)
 }
 
-tasks {
-    build {
-        dependsOn(reobfJar)
+publishing {
+    repositories {
+        maven {
+            setUrl("https://maven.boecker.dev/releases")
+
+            credentials {
+                username = System.getenv("MAVEN_USERNAME")
+                password = System.getenv("MAVEN_SECRET")
+            }
+        }
     }
-    withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-        kotlinOptions.jvmTarget = "17"
+
+    publications {
+        publications {
+            create<MavenPublication>(project.name) {
+                from(components["kotlin"])
+                pom {
+                    name.set(project.name)
+                    description.set("simple luck perms formatter, as a library for disabling formatting on the fly")
+                    url.set("https://github.com/cherrycave/simpleluckpermsformatter")
+
+                    licenses {
+                        license {
+                            name.set("Apache License 2.0")
+                            url.set("https://github.com/cherrycave/simpleluckpermsformatter/LICENSE")
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            name.set("Lou Emma Böcker")
+                            email.set("lou@boecker.dev")
+                            organizationUrl.set("https://www.boecker.dev")
+                        }
+                    }
+                }
+            }
+        }
     }
 }

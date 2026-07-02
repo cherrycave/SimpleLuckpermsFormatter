@@ -1,0 +1,15 @@
+name: SimpleLuckPermsFormatter
+main: dev.boecker.cherrycave.slpf.SimpleLuckPermsFormatter
+loader: dev.boecker.cherrycave.slpf.SLPFLoader
+version: 2.0.0
+api-version: 26.1.2
+authors:
+  - NyCodeGHG
+  - Lou Böcker
+website: https://github.com/CherryCave/SimpleLuckPermsFormatter
+dependencies:
+  server:
+    LuckPerms:
+      load: BEFORE
+      required: true
+      join-classpath: true
