@@ -72,6 +72,7 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     }
 
     private fun Player.updateScoreboard() {
+        scoreboard = Bukkit.getScoreboardManager().newScoreboard
         scoreboard.teams.forEach {
             it.unregister()
         }
@@ -102,10 +103,7 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     }
 
     private fun getFormattedWeight(weight: Int): String {
-        var weightString = weight.toString()
-        while (weightString.length <= 5) {
-            weightString = "0$weightString"
-        }
+        val weightString = (100 - weight).toString()
         return weightString
     }
 
@@ -129,7 +127,6 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     private fun onPlayerJoin(event: PlayerJoinEvent) {
         val player = event.player
         if (disableFormatting) return
-        player.scoreboard = Bukkit.getScoreboardManager().newScoreboard
         Bukkit.getOnlinePlayers().forEach {
             it.updateScoreboard()
             it.updatePrefixes()
