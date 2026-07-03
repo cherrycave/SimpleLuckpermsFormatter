@@ -16,6 +16,7 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.function.Consumer
 
@@ -72,28 +73,30 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     }
 
     private fun Player.updateScoreboard() {
-        scoreboard = Bukkit.getScoreboardManager().newScoreboard
-        scoreboard.teams.forEach {
-            it.unregister()
-        }
-        if (disableFormatting) return
-        luckPerms.groupManager.loadedGroups
-            .sortedByDescending { it.weight.orElse(0) }
-            .forEachIndexed { index, group ->
-                val team =
-                    scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
-                team.prefix(
-                    miniMessage.deserialize(group.cachedData.metaData.prefix ?: "")
-                )
-                team.suffix(
-                    miniMessage.deserialize(group.cachedData.metaData.suffix ?: "")
-                )
-                team.color(
-                    NamedTextColor.NAMES.value(
-                        group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray"
-                    )
-                )
+        server.scheduler.runTask(this@SimpleLuckPermsFormatter) { _ ->
+            scoreboard = Bukkit.getScoreboardManager().newScoreboard
+            scoreboard.teams.forEach {
+                it.unregister()
             }
+            if (disableFormatting) return@runTask
+            luckPerms.groupManager.loadedGroups
+                .sortedByDescending { it.weight.orElse(0) }
+                .forEachIndexed { index, group ->
+                    val team =
+                        scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
+                    team.prefix(
+                        miniMessage.deserialize(group.cachedData.metaData.prefix ?: "")
+                    )
+                    team.suffix(
+                        miniMessage.deserialize(group.cachedData.metaData.suffix ?: "")
+                    )
+                    team.color(
+                        NamedTextColor.NAMES.value(
+                            group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray"
+                        )
+                    )
+                }
+        }
     }
 
     private fun loadLuckPerms(): LuckPerms? {
@@ -109,12 +112,12 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
 
     private fun Player.updatePrefixes() {
         if (disableFormatting) return
-        Bukkit.getOnlinePlayers().forEach {
-            val group = it.getLuckPermsGroup() ?: return
+        Bukkit.getOnlinePlayers().forEach { player ->
+            val group = player.getLuckPermsGroup() ?: return
             val index = luckPerms.groupManager.loadedGroups.sortedByDescending { it.weight.orElse(0) }
                 .indexOf(group)
             val team = this.scoreboard.getTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
-            team?.addEntry(it.name)
+            team?.addEntry(player.name)
         }
     }
 
