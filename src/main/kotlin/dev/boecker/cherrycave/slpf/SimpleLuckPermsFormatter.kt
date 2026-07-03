@@ -44,11 +44,11 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
 
     override fun onEnable() {
         luckPerms = loadLuckPerms() ?: error("Unable to load the LuckPerms API")
-        Bukkit.getPluginManager()
+        server.pluginManager
             .registerEvents(this, this)
 
         val update = Consumer<Any> {
-            Bukkit.getOnlinePlayers().forEach {
+            server.onlinePlayers.forEach {
                 it.updateScoreboard()
                 it.updatePrefixes()
             }
@@ -73,30 +73,28 @@ class SimpleLuckPermsFormatter : JavaPlugin(), Listener {
     }
 
     private fun Player.updateScoreboard() {
-        server.scheduler.runTask(this@SimpleLuckPermsFormatter) { _ ->
-            scoreboard = Bukkit.getScoreboardManager().newScoreboard
-            scoreboard.teams.forEach {
-                it.unregister()
-            }
-            if (disableFormatting) return@runTask
-            luckPerms.groupManager.loadedGroups
-                .sortedByDescending { it.weight.orElse(0) }
-                .forEachIndexed { index, group ->
-                    val team =
-                        scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
-                    team.prefix(
-                        miniMessage.deserialize(group.cachedData.metaData.prefix ?: "")
-                    )
-                    team.suffix(
-                        miniMessage.deserialize(group.cachedData.metaData.suffix ?: "")
-                    )
-                    team.color(
-                        NamedTextColor.NAMES.value(
-                            group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray"
-                        )
-                    )
-                }
+        if (disableFormatting) return
+        scoreboard = Bukkit.getScoreboardManager().newScoreboard
+        scoreboard.teams.forEach {
+            it.unregister()
         }
+        luckPerms.groupManager.loadedGroups
+            .sortedByDescending { it.weight.orElse(0) }
+            .forEachIndexed { index, group ->
+                val team =
+                    scoreboard.registerNewTeam(getFormattedWeight(group.weight.orElse(index)) + group.name)
+                team.prefix(
+                    miniMessage.deserialize(group.cachedData.metaData.prefix ?: "")
+                )
+                team.suffix(
+                    miniMessage.deserialize(group.cachedData.metaData.suffix ?: "")
+                )
+                team.color(
+                    NamedTextColor.NAMES.value(
+                        group.cachedData.metaData.getMetaValue("color")?.lowercase() ?: "gray"
+                    )
+                )
+            }
     }
 
     private fun loadLuckPerms(): LuckPerms? {
