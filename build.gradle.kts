@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.1.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:26.2.build.129.+")
     compileOnly("net.luckperms:api:5.5")
 }
 
